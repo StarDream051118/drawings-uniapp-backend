@@ -1,0 +1,84 @@
+const pool = require('../db/index');
+
+let lastTime = 0;
+let seq = 0;
+
+class User {
+    // 创建用户
+    static async createUser(userAuth) {
+        const { account, password, email } = userAuth;
+        const formatTime = new Date();
+        const sql = 'INSERT INTO users (account, password, email, created_at, updated_at) VALUES (?, ?, ?, ?, ?)';
+        const [result1] = await pool.execute(sql, [account, password, email, formatTime, formatTime]);
+        return {
+            id: result1.insertId,
+            formatTime: formatTime
+        };
+    }
+
+    // 创建用户基础信息
+    static async createInfo(userData) {
+        const { userAuth: { id, formatTime },userId, username } = userData;
+        const sql = 'INSERT INTO user_data (id, user_id, username, avatar_path, gender, des, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
+        const [result] = await pool.execute(sql, [id, userId, username, null, null, null, formatTime, formatTime]);
+        return result.affectedRows;
+    }
+
+    // 生成 6 位唯一 user_id（无重复、固定长度）
+    static generateUserId() {
+        let now = Date.now();
+
+        // 同一毫秒内请求
+        if (now === lastTime) {
+            seq++;
+            // 超过 100 个，等待到下一毫秒
+            if (seq > 99) {
+                while (Date.now() === lastTime) {
+                    // 空循环等待
+                }
+                now = Date.now();
+                seq = 0;
+            }
+        } else {
+            // 新毫秒，重置序号
+            seq = 0;
+            lastTime = now;
+        }
+
+        const base = now % 1000000;
+        const id = base * 100 + seq;
+
+        // 保证一定返回 6 位字符串
+        return id.toString().padStart(6, '0').slice(-6);
+    }
+
+    // 根据账号查找用户
+    static async findByAccount(account) {
+        const sql = 'SELECT id, password FROM users WHERE account = ?';
+        const [rows] = await pool.execute(sql, [account]);
+        return rows[0];
+    }
+
+    // 根据邮箱查找用户
+    static async findByEmail(email) {
+        const sql = 'SELECT email FROM users WHERE email = ?';
+        const [rows] = await pool.execute(sql, [email]);
+        return rows[0];
+    }
+
+    // 根据UserID查找用户
+    static async findByUserId(user_id) {
+        const sql = 'SELECT user_id, username, avatar_path, gender, des, created_at FROM user_data WHERE user_id = ?';
+        const [rows] = await pool.execute(sql, [user_id]);
+        return rows[0];
+    }
+
+    // 根据ID查找用户
+    static async findById(id) {
+        const sql = 'SELECT user_id, username, avatar_path, gender, des, created_at FROM user_data WHERE id = ?';
+        const [rows] = await pool.execute(sql, [id]);
+        return rows[0];
+    }
+}
+
+module.exports = User;

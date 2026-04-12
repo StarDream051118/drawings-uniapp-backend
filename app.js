@@ -56,7 +56,11 @@ async function startServer() {
             });
         });
 
-        // Create HTTP server and Socket.io instance
+        // 路由导入
+        const authRoutes = require('./routes/auth');
+        app.use('/api/auth', authRoutes);
+
+        // 创建HTTP服务器和Socket.io实例
         const server = http.createServer(app);
         const io = new Server(server, {
             cors: {
@@ -65,7 +69,7 @@ async function startServer() {
             }
         });
 
-        // Initialize socket handler
+        // 初始化Socket.io控制
         socketHandler(io);
 
         // 启动服务
