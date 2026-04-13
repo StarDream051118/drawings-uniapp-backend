@@ -19,8 +19,8 @@ class User {
     // 创建用户基础信息
     static async createInfo(userData) {
         const { userAuth: { id, formatTime },userId, username } = userData;
-        const sql = 'INSERT INTO user_data (id, user_id, username, avatar_path, gender, des, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
-        const [result] = await pool.execute(sql, [id, userId, username, null, null, null, formatTime, formatTime]);
+        const sql = 'INSERT INTO user_data (id, user_id, username, avatar_path, profile_bg, gender, des, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
+        const [result] = await pool.execute(sql, [id, userId, username, null, null, null, null, formatTime, formatTime]);
         return result.affectedRows;
     }
 
@@ -68,14 +68,14 @@ class User {
 
     // 根据UserID查找用户
     static async findByUserId(user_id) {
-        const sql = 'SELECT user_id, username, avatar_path, gender, des, created_at FROM user_data WHERE user_id = ?';
+        const sql = 'SELECT user_id, username, avatar_path, profile_bg, gender, des, created_at FROM user_data WHERE user_id = ?';
         const [rows] = await pool.execute(sql, [user_id]);
         return rows[0];
     }
 
     // 根据ID查找用户
     static async findById(id) {
-        const sql = 'SELECT user_id, username, avatar_path, gender, des, created_at FROM user_data WHERE id = ?';
+        const sql = 'SELECT user_id, username, avatar_path, profile_bg, gender, des, created_at FROM user_data WHERE id = ?';
         const [rows] = await pool.execute(sql, [id]);
         return rows[0];
     }
