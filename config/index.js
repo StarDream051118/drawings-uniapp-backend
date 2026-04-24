@@ -3,6 +3,7 @@ require('dotenv').config();
 // 全局配置导出
 module.exports = {
     port: process.env.PORT || 3002,
+    BASE_URL: process.env.BASE_URL || 'http://localhost:3002',
     DB_HOST: process.env.DB_HOST || 'localhost',
     DB_PORT: process.env.DB_PORT || 3306,
     DB_USER: process.env.DB_USER || 'root',

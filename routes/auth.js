@@ -8,4 +8,7 @@ router.post('/register', AuthController.register);
 // 用户登录
 router.post('/login', AuthController.login);
 
+// 验证Token
+router.post('/verify', AuthController.verify);
+
 module.exports = router;

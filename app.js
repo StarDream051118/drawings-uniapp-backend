@@ -42,6 +42,7 @@ async function startServer() {
         }));
         app.use(express.json());
         app.use(express.urlencoded({ extended: true }));
+        app.use('/uploads', express.static('public/uploads'));
 
         // 健康检查接口
         app.get('/api/health', (req, res) => {
@@ -58,7 +59,9 @@ async function startServer() {
 
         // 路由导入
         const authRoutes = require('./routes/auth');
+        const userRoutes = require('./routes/user');
         app.use('/api/auth', authRoutes);
+        app.use('/api/user', userRoutes);
 
         // 创建HTTP服务器和Socket.io实例
         const server = http.createServer(app);

@@ -1,8 +1,21 @@
 const User = require('../models/user');
 const { hashPassword, comparePassword } = require('../utils/bcrypt');
-const { generateToken } = require('../utils/jwt');
+const { generateToken, verifyToken } = require('../utils/jwt');
 
 class AuthService {
+    // 验证登录状态
+    static async verifyToken(token) {
+        const decoded = verifyToken(token);
+        if (!decoded || !decoded.user_id) {
+            return { valid: false };
+        }
+        const user = await User.findByUserId(decoded.user_id);
+        if (!user) {
+            return { valid: false };
+        }
+        return { valid: true, user_id: decoded.user_id };
+    }
+
     // 用户注册
     static async register(userData) {
         const { username, account, password, email } = userData;

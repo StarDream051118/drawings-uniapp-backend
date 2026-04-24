@@ -154,6 +154,42 @@ class AuthController {
             }
         }
     }
+
+    static async verify(req, res) {
+        try {
+            const authHeader = req.headers.authorization;
+            if (!authHeader || !authHeader.startsWith('Bearer ')) {
+                return res.status(401).json({
+                    code: 401,
+                    msg: '未提供有效的认证令牌'
+                });
+            }
+
+            const token = authHeader.substring(7);
+            const result = await AuthService.verifyToken(token);
+
+            if (!result.valid) {
+                return res.status(401).json({
+                    code: 401,
+                    msg: '令牌无效或已过期'
+                });
+            }
+
+            res.status(200).json({
+                code: 200,
+                msg: '令牌有效',
+                data: {
+                    user_id: result.user_id
+                }
+            });
+        } catch (error) {
+            console.error('验证令牌错误：', error);
+            res.status(500).json({
+                code: 500,
+                msg: '服务器内部错误'
+            });
+        }
+    }
 }
 
 module.exports = AuthController;
