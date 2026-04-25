@@ -7,6 +7,13 @@ class File {
         const [result] = await pool.execute(sql, [avatarPath, formatTime, user_id]);
         return result.affectedRows > 0;
     }
+
+    static async updateProfileBgPath(user_id, profileBgPath) {
+        const sql = 'UPDATE user_data SET profile_bg = ?, updated_at = ? WHERE user_id = ?';
+        const formatTime = new Date();
+        const [result] = await pool.execute(sql, [profileBgPath, formatTime, user_id]);
+        return result.affectedRows > 0;
+    }
 }
 
 module.exports = File;

@@ -30,6 +30,32 @@ class UploadFileService {
             filename
         };
     }
+
+    static async uploadProfileBg(file, user_id) {
+        const { filename } = file;
+        const profileBgUrl = `${config.BASE_URL}/uploads/profile_bg/${filename}`;
+
+        const oldUser = await User.findByUserId(user_id);
+        const oldProfileBgPath = oldUser ? oldUser.profile_bg : null;
+
+        const success = await File.updateProfileBgPath(user_id, profileBgUrl);
+        if (!success) {
+            throw new Error('背景图更新失败');
+        }
+
+        if (oldProfileBgPath) {
+            const oldFilename = path.basename(oldProfileBgPath);
+            const oldFilePath = path.join('public/uploads/profile_bg', oldFilename);
+            if (fs.existsSync(oldFilePath)) {
+                fs.unlinkSync(oldFilePath);
+            }
+        }
+
+        return {
+            profileBgUrl,
+            filename
+        };
+    }
 }
 
 module.exports = UploadFileService;

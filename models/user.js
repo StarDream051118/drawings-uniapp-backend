@@ -79,6 +79,30 @@ class User {
         const [rows] = await pool.execute(sql, [id]);
         return rows[0];
     }
+
+    // 更新用户名
+    static async updateUsername(user_id, username) {
+        const sql = 'UPDATE user_data SET username = ?, updated_at = ? WHERE user_id = ?';
+        const formatTime = new Date();
+        const [result] = await pool.execute(sql, [username, formatTime, user_id]);
+        return result.affectedRows > 0;
+    }
+
+    // 更新性别
+    static async updateGender(user_id, gender) {
+        const sql = 'UPDATE user_data SET gender = ?, updated_at = ? WHERE user_id = ?';
+        const formatTime = new Date();
+        const [result] = await pool.execute(sql, [gender, formatTime, user_id]);
+        return result.affectedRows > 0;
+    }
+
+    // 更新用户描述
+    static async updateDes(user_id, des) {
+        const sql = 'UPDATE user_data SET des = ?, updated_at = ? WHERE user_id = ?';
+        const formatTime = new Date();
+        const [result] = await pool.execute(sql, [des, formatTime, user_id]);
+        return result.affectedRows > 0;
+    }
 }
 
 module.exports = User;
