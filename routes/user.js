@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const UploadController = require('../controllers/uploadController');
+const AuthService = require('../services/authService');
 const multer = require('multer');
 const path = require('path');
 
-// multer配置储存
 const storage = multer.diskStorage({
     destination: function (req, file, cb){
         cb(null, 'public/uploads/avatar/')
@@ -15,7 +15,6 @@ const storage = multer.diskStorage({
     }
 });
 
-// 创建multer实例
 const upload = multer({
     storage: storage,
     limits: {
@@ -32,7 +31,28 @@ const upload = multer({
     }
 });
 
-// 用户头像上传
-router.post('/avatar', upload.single('avatar'), UploadController.uploadAvatar);
+async function authMiddleware(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({
+            code: 401,
+            msg: '未提供有效的认证令牌'
+        });
+    }
+
+    const token = authHeader.substring(7);
+    const verifyResult = await AuthService.verifyToken(token);
+    if (!verifyResult.valid) {
+        return res.status(401).json({
+            code: 401,
+            msg: '令牌无效或已过期'
+        });
+    }
+
+    req.user_id = verifyResult.user_id;
+    next();
+}
+
+router.post('/avatar', authMiddleware, upload.single('avatar'), UploadController.uploadAvatar);
 
 module.exports = router;

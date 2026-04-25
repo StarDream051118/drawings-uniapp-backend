@@ -1,5 +1,4 @@
 const UploadFileService = require('../services/uploadFileService');
-const AuthService = require('../services/authService');
 const path = require('path');
 
 class UploadController {
@@ -39,24 +38,7 @@ class UploadController {
                 });
             }
 
-            const authHeader = req.headers.authorization;
-            if (!authHeader || !authHeader.startsWith('Bearer ')) {
-                return res.status(401).json({
-                    code: 401,
-                    msg: '未提供有效的认证令牌'
-                });
-            }
-
-            const token = authHeader.substring(7);
-            const verifyResult = await AuthService.verifyToken(token);
-            if (!verifyResult.valid) {
-                return res.status(401).json({
-                    code: 401,
-                    msg: '令牌无效或已过期'
-                });
-            }
-
-            const { user_id } = verifyResult;
+            const user_id = req.user_id;
             const result = await UploadFileService.uploadAvatar(file, user_id);
 
             res.status(200).json({

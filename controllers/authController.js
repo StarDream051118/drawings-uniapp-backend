@@ -171,7 +171,7 @@ class AuthController {
             if (!result.valid) {
                 return res.status(401).json({
                     code: 401,
-                    msg: '令牌无效或已过期'
+                    msg: '登录已过期请重新登录'
                 });
             }
 
