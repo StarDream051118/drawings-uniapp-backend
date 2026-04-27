@@ -54,7 +54,7 @@ class User {
 
     // 根据账号查找用户
     static async findByAccount(account) {
-        const sql = 'SELECT id, password FROM users WHERE account = ?';
+        const sql = 'SELECT id, email, password FROM users WHERE account = ?';
         const [rows] = await pool.execute(sql, [account]);
         return rows[0];
     }
@@ -101,6 +101,14 @@ class User {
         const sql = 'UPDATE user_data SET des = ?, updated_at = ? WHERE user_id = ?';
         const formatTime = new Date();
         const [result] = await pool.execute(sql, [des, formatTime, user_id]);
+        return result.affectedRows > 0;
+    }
+
+    // 更新密码
+    static async updatePassword(email, newPassword) {
+        const sql = 'UPDATE users SET password = ?, updated_at = ? WHERE email = ?';
+        const formatTime = new Date();
+        const [result] = await pool.execute(sql, [newPassword, formatTime, email]);
         return result.affectedRows > 0;
     }
 }

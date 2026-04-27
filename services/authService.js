@@ -89,6 +89,16 @@ class AuthService {
             token
         }
     }
+
+    // 重置密码
+    static async resetPassword(email, newPassword) {
+        const hashedPassword = await hashPassword(newPassword);
+        const success = await User.updatePassword(email, hashedPassword);
+        if (!success) {
+            throw new Error('密码重置失败');
+        }
+        return { email };
+    }
 }
 
 module.exports = AuthService;
