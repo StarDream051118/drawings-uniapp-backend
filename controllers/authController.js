@@ -101,7 +101,7 @@ class AuthController {
 
             const code = CodeService.generateCode();
             await CodeService.saveCode(email, 'register', code);
-            await EmailService.sendCode(email, code, 'register');
+            await EmailService.sendCode(email, code, 'register', username);
 
             res.status(200).json({
                 code: 200,
@@ -301,9 +301,12 @@ class AuthController {
                 });
             }
 
+            const userInfo = await User.findById(existingAccount.id);
+            const username = userInfo ? userInfo.username : null;
+
             const code = CodeService.generateCode();
             await CodeService.saveCode(email, 'reset_password', code);
-            await EmailService.sendCode(email, code, 'reset_password');
+            await EmailService.sendCode(email, code, 'reset_password', username);
 
             res.status(200).json({
                 code: 200,
@@ -353,6 +356,113 @@ class AuthController {
             });
         } catch (error) {
             console.error('重置密码错误：', error);
+            res.status(500).json({
+                code: 500,
+                msg: '服务器内部错误'
+            });
+        }
+    }
+
+    static async sendChangeCode(req, res) {
+        try {
+            const authHeader = req.headers.authorization;
+            if (!authHeader || !authHeader.startsWith('Bearer ')) {
+                return res.status(401).json({
+                    code: 401,
+                    msg: '未提供有效的认证令牌'
+                });
+            }
+
+            const token = authHeader.substring(7);
+            const verifyResult = await AuthService.verifyToken(token);
+            if (!verifyResult.valid) {
+                return res.status(401).json({
+                    code: 401,
+                    msg: '登录已过期请重新登录'
+                });
+            }
+
+            const user_id = verifyResult.user_id;
+            const user = await User.findUserByUserId(user_id);
+            if (!user) {
+                return res.status(404).json({ code: 404, msg: '用户不存在' });
+            }
+
+            const email = user.email;
+            const interval = await CodeService.sendIntervalCheck(email);
+            if (interval > 0) {
+                return res.status(429).json({
+                    code: 429,
+                    msg: `请 ${interval} 秒后再试`
+                });
+            }
+
+            const code = CodeService.generateCode();
+            await CodeService.saveCode(email, 'change_password', code);
+            await EmailService.sendCode(email, code, 'change_password', user.username);
+
+            res.status(200).json({
+                code: 200,
+                msg: '验证码已发送'
+            });
+        } catch (error) {
+            console.error('发送修改密码验证码错误：', error);
+            res.status(500).json({
+                code: 500,
+                msg: '服务器内部错误'
+            });
+        }
+    }
+
+    static async verifyChangePassword(req, res) {
+        try {
+            const authHeader = req.headers.authorization;
+            if (!authHeader || !authHeader.startsWith('Bearer ')) {
+                return res.status(401).json({
+                    code: 401,
+                    msg: '未提供有效的认证令牌'
+                });
+            }
+
+            const token = authHeader.substring(7);
+            const verifyResult = await AuthService.verifyToken(token);
+            if (!verifyResult.valid) {
+                return res.status(401).json({
+                    code: 401,
+                    msg: '登录已过期请重新登录'
+                });
+            }
+
+            const user_id = verifyResult.user_id;
+            const { authCode, newPassword } = req.body;
+
+            const passwordCheck = AuthController.validatePassword(newPassword);
+            if (!passwordCheck.valid) {
+                return res.status(400).json({ code: 400, msg: passwordCheck.msg });
+            }
+
+            if (!authCode) {
+                return res.status(400).json({ code: 400, msg: '验证码不能为空' });
+            }
+
+            const user = await User.findUserByUserId(user_id);
+            if (!user) {
+                return res.status(404).json({ code: 404, msg: '用户不存在' });
+            }
+
+            const result = await CodeService.verifyCode(user.email, 'change_password', authCode);
+            if (!result.valid) {
+                return res.status(400).json({ code: 400, msg: result.msg });
+            }
+
+            await AuthService.changePassword(user_id, newPassword);
+
+            res.status(200).json({
+                code: 200,
+                msg: '密码修改成功'
+            });
+        } catch (error) {
+            console.error('修改密码错误：', error);
             res.status(500).json({
                 code: 500,
                 msg: '服务器内部错误'

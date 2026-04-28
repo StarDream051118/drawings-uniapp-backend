@@ -80,6 +80,25 @@ class User {
         return rows[0];
     }
 
+    // 根据UserID查找用户（包含邮箱）
+    static async findUserByUserId(user_id) {
+        const userDataSql = 'SELECT id, user_id, username FROM user_data WHERE user_id = ?';
+        const [userDataRows] = await pool.execute(userDataSql, [user_id]);
+        if (!userDataRows[0]) {
+            return null;
+        }
+        const { id } = userDataRows[0];
+        const userSql = 'SELECT email FROM users WHERE id = ?';
+        const [userRows] = await pool.execute(userSql, [id]);
+        if (!userRows[0]) {
+            return null;
+        }
+        return {
+            ...userDataRows[0],
+            email: userRows[0].email
+        };
+    }
+
     // 更新用户名
     static async updateUsername(user_id, username) {
         const sql = 'UPDATE user_data SET username = ?, updated_at = ? WHERE user_id = ?';

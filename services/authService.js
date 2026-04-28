@@ -99,6 +99,20 @@ class AuthService {
         }
         return { email };
     }
+
+    // 修改密码（已登录用户）
+    static async changePassword(user_id, newPassword) {
+        const hashedPassword = await hashPassword(newPassword);
+        const user = await User.findUserByUserId(user_id);
+        if (!user) {
+            throw new Error('用户不存在');
+        }
+        const success = await User.updatePassword(user.email, hashedPassword);
+        if (!success) {
+            throw new Error('密码修改失败');
+        }
+        return { user_id };
+    }
 }
 
 module.exports = AuthService;

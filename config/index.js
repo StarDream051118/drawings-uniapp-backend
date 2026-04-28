@@ -25,5 +25,6 @@ module.exports = {
         user: process.env.QQ_EMAIL_USER || '',
         pass: process.env.QQ_EMAIL_PASS || ''
     },
-    codeExpireTime: process.env.CODE_EXPIRE_TIME || 5
+    codeExpireTime: process.env.CODE_EXPIRE_TIME || 5,
+    maxRetryCount: process.env.MAX_RETRY_COUNT || 5
 };

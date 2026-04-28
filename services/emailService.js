@@ -14,16 +14,18 @@ class EmailService {
         });
     }
 
-    static async sendCode(email, code, type) {
+    static async sendCode(email, code, type, username) {
         const transporter = this.createTransporter();
 
         const subject = type === 'register'
             ? '【Drawings】注册验证码'
-            : '【Drawings】找回密码验证码';
+            : '【Drawings】重置密码验证码';
+
+        const greeting = username ? `您好，${username}！` : '您好！';
 
         const html = `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #333;">您好！</h2>
+                <h2 style="color: #333;">${greeting}</h2>
                 <p style="color: #666; font-size: 16px;">
                     您的验证码是：
                 </p>
