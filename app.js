@@ -5,6 +5,7 @@ const cors = require('cors');
 const net = require('net');
 const config = require('./config/index');
 const socketHandler = require('./socket/socketHandler');
+const Consumer = require('./worker/consumer');
 
 // 创建Express实例
 const app = express();
@@ -76,10 +77,17 @@ async function startServer() {
         socketHandler(io);
 
         // 启动服务
-        server.listen(config.port, () => {
+        server.listen(config.port, async () => {
             console.log(`🚀 drawings-uniapp-backend 服务运行在：http://localhost:${config.port}`);
             console.log(`📌 当前环境：${config.env}`);
             console.log(`🏥 检查接口健康：http://localhost:${config.port}/api/health`);
+
+            // 启动消息队列消费者
+            try {
+                await Consumer.start();
+            } catch (error) {
+                console.error('❌ 消费者启动失败：', error.message);
+            }
         });
 
     } catch (err) {

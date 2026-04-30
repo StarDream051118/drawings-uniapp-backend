@@ -3,6 +3,7 @@ const router = express.Router();
 const UploadController = require('../controllers/uploadController');
 const UserController = require('../controllers/userController');
 const AuthService = require('../services/authService');
+const verifySignature = require('../middleware/verifySignature');
 const multer = require('multer');
 const path = require('path');
 
@@ -82,8 +83,8 @@ async function authMiddleware(req, res, next) {
 
 router.post('/avatar', authMiddleware, uploadAvatar.single('avatar'), UploadController.uploadAvatar);
 router.post('/profile-bg', authMiddleware, uploadProfileBg.single('profile_bg'), UploadController.uploadProfileBg);
-router.put('/username', authMiddleware, UserController.updateUsername);
-router.put('/gender', authMiddleware, UserController.updateGender);
-router.put('/des', authMiddleware, UserController.updateDes);
+router.put('/username', authMiddleware, verifySignature, UserController.updateUsername);
+router.put('/gender', authMiddleware, verifySignature, UserController.updateGender);
+router.put('/des', authMiddleware, verifySignature, UserController.updateDes);
 
 module.exports = router;

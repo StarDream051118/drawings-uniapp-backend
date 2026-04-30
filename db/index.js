@@ -8,7 +8,7 @@ const pool = mysql.createPool({
     password: config.DB_PASSWORD || '',
     database: config.DB_DATABASE || 'drawings',
     waitForConnections: true,
-    connectionLimit: 10,
+    connectionLimit: 5,
     queueLimit: 0,
 });
 

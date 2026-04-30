@@ -2,6 +2,7 @@ const AuthService = require('../services/authService');
 const EmailService = require('../services/emailService');
 const CodeService = require('../services/codeService');
 const User = require('../models/user');
+const Signature = require('../utils/signature');
 
 class AuthController {
     static validateUsername(username) {
@@ -463,6 +464,55 @@ class AuthController {
             });
         } catch (error) {
             console.error('修改密码错误：', error);
+            res.status(500).json({
+                code: 500,
+                msg: '服务器内部错误'
+            });
+        }
+    }
+
+    static async getSigToken(req, res) {
+        try {
+            const authHeader = req.headers.authorization;
+            if (!authHeader || !authHeader.startsWith('Bearer ')) {
+                return res.status(401).json({
+                    code: 401,
+                    msg: '未提供有效的认证令牌'
+                });
+            }
+
+            const token = authHeader.substring(7);
+            const verifyResult = await AuthService.verifyToken(token);
+            if (!verifyResult.valid) {
+                return res.status(401).json({
+                    code: 401,
+                    msg: '登录已过期请重新登录'
+                });
+            }
+
+            const user_id = verifyResult.user_id;
+            const { operation_type } = req.body;
+
+            if (!operation_type) {
+                return res.status(400).json({
+                    code: 400,
+                    msg: '缺少操作类型'
+                });
+            }
+
+            const { sig_token, timestamp, randomId } = Signature.generateSigToken(operation_type, user_id);
+            await Signature.saveSigToken(operation_type, user_id, sig_token, timestamp, randomId);
+
+            res.status(200).json({
+                code: 200,
+                msg: '签名令牌已生成',
+                data: {
+                    sig_token,
+                    expires_in: 30
+                }
+            });
+        } catch (error) {
+            console.error('获取签名令牌错误：', error);
             res.status(500).json({
                 code: 500,
                 msg: '服务器内部错误'

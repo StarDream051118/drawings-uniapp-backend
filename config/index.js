@@ -25,6 +25,12 @@ module.exports = {
         user: process.env.QQ_EMAIL_USER || '',
         pass: process.env.QQ_EMAIL_PASS || ''
     },
+    rabbitmq: {
+        host: process.env.RABBITMQ_HOST || 'localhost',
+        port: process.env.RABBITMQ_PORT || 5672,
+        user: process.env.RABBITMQ_USER || 'guest',
+        password: process.env.RABBITMQ_PASSWORD || 'guest'
+    },
     codeExpireTime: process.env.CODE_EXPIRE_TIME || 5,
     maxRetryCount: process.env.MAX_RETRY_COUNT || 5
 };

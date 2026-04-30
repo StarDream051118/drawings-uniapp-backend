@@ -1,5 +1,7 @@
 const UploadFileService = require('../services/uploadFileService');
+const QueueService = require('../services/queueService');
 const path = require('path');
+const fs = require('fs');
 
 class UploadController {
     static async uploadAvatar(req, res) {
@@ -38,17 +40,40 @@ class UploadController {
                 });
             }
 
+            const config = require('../config/index');
+            const avatarUrl = `${config.BASE_URL}/uploads/avatar/${file.filename}`;
             const user_id = req.user_id;
-            const result = await UploadFileService.uploadAvatar(file, user_id);
 
-            res.status(200).json({
-                code: 200,
-                msg: '头像上传成功',
-                data: {
-                    avatarUrl: result.avatarUrl,
-                    filename: result.filename
-                }
-            });
+            try {
+                const oldUser = await require('../models/user').findByUserId(user_id);
+                const oldAvatarPath = oldUser ? oldUser.avatar_path : null;
+
+                await QueueService.publishUserOperation({
+                    type: 'update_avatar',
+                    user_id,
+                    data: { avatar_path: avatarUrl, oldAvatarPath }
+                });
+
+                res.status(200).json({
+                    code: 200,
+                    msg: '头像上传成功',
+                    data: {
+                        avatarUrl,
+                        filename: file.filename
+                    }
+                });
+            } catch (queueError) {
+                console.warn('⚠️ 队列不可用，降级为直接写入：', queueError.message);
+                const result = await UploadFileService.uploadAvatar(file, user_id);
+                res.status(200).json({
+                    code: 200,
+                    msg: '头像上传成功',
+                    data: {
+                        avatarUrl: result.avatarUrl,
+                        filename: result.filename
+                    }
+                });
+            }
         } catch (error) {
             console.error('头像上传错误：', error);
             res.status(500).json({
@@ -94,17 +119,40 @@ class UploadController {
                 });
             }
 
+            const config = require('../config/index');
+            const profileBgUrl = `${config.BASE_URL}/uploads/profile_bg/${file.filename}`;
             const user_id = req.user_id;
-            const result = await UploadFileService.uploadProfileBg(file, user_id);
 
-            res.status(200).json({
-                code: 200,
-                msg: '背景图上传成功',
-                data: {
-                    profileBgUrl: result.profileBgUrl,
-                    filename: result.filename
-                }
-            });
+            try {
+                const oldUser = await require('../models/user').findByUserId(user_id);
+                const oldProfileBgPath = oldUser ? oldUser.profile_bg : null;
+
+                await QueueService.publishUserOperation({
+                    type: 'update_profile_bg',
+                    user_id,
+                    data: { profile_bg: profileBgUrl, oldProfileBgPath }
+                });
+
+                res.status(200).json({
+                    code: 200,
+                    msg: '背景图上传成功',
+                    data: {
+                        profileBgUrl,
+                        filename: file.filename
+                    }
+                });
+            } catch (queueError) {
+                console.warn('⚠️ 队列不可用，降级为直接写入：', queueError.message);
+                const result = await UploadFileService.uploadProfileBg(file, user_id);
+                res.status(200).json({
+                    code: 200,
+                    msg: '背景图上传成功',
+                    data: {
+                        profileBgUrl: result.profileBgUrl,
+                        filename: result.filename
+                    }
+                });
+            }
         } catch (error) {
             console.error('背景图上传错误：', error);
             res.status(500).json({

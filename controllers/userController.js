@@ -1,4 +1,5 @@
 const UserService = require('../services/userService');
+const QueueService = require('../services/queueService');
 
 class UserController {
     static async updateUsername(req, res) {
@@ -28,13 +29,27 @@ class UserController {
                 });
             }
 
-            const result = await UserService.updateUsername(user_id, username);
+            try {
+                await QueueService.publishUserOperation({
+                    type: 'update_username',
+                    user_id,
+                    data: { username }
+                });
 
-            res.status(200).json({
-                code: 200,
-                msg: '用户名修改成功',
-                data: result
-            });
+                res.status(200).json({
+                    code: 200,
+                    msg: '请求已接收',
+                    data: { username }
+                });
+            } catch (queueError) {
+                console.warn('⚠️ 队列不可用，降级为直接写入：', queueError.message);
+                const result = await UserService.updateUsername(user_id, username);
+                res.status(200).json({
+                    code: 200,
+                    msg: '用户名修改成功',
+                    data: result
+                });
+            }
         } catch (error) {
             console.error('修改用户名错误：', error);
             res.status(500).json({
@@ -56,13 +71,27 @@ class UserController {
                 });
             }
 
-            const result = await UserService.updateGender(user_id, gender);
+            try {
+                await QueueService.publishUserOperation({
+                    type: 'update_gender',
+                    user_id,
+                    data: { gender }
+                });
 
-            res.status(200).json({
-                code: 200,
-                msg: '性别修改成功',
-                data: result
-            });
+                res.status(200).json({
+                    code: 200,
+                    msg: '请求已接收',
+                    data: { gender }
+                });
+            } catch (queueError) {
+                console.warn('⚠️ 队列不可用，降级为直接写入：', queueError.message);
+                const result = await UserService.updateGender(user_id, gender);
+                res.status(200).json({
+                    code: 200,
+                    msg: '性别修改成功',
+                    data: result
+                });
+            }
         } catch (error) {
             console.error('修改性别错误：', error);
             res.status(500).json({
@@ -84,13 +113,27 @@ class UserController {
                 });
             }
 
-            const result = await UserService.updateDes(user_id, des);
+            try {
+                await QueueService.publishUserOperation({
+                    type: 'update_des',
+                    user_id,
+                    data: { des }
+                });
 
-            res.status(200).json({
-                code: 200,
-                msg: '用户描述修改成功',
-                data: result
-            });
+                res.status(200).json({
+                    code: 200,
+                    msg: '请求已接收',
+                    data: { des }
+                });
+            } catch (queueError) {
+                console.warn('⚠️ 队列不可用，降级为直接写入：', queueError.message);
+                const result = await UserService.updateDes(user_id, des);
+                res.status(200).json({
+                    code: 200,
+                    msg: '用户描述修改成功',
+                    data: result
+                });
+            }
         } catch (error) {
             console.error('修改用户描述错误：', error);
             res.status(500).json({
