@@ -1,7 +1,17 @@
 const pool = require('../db/index');
+const config = require('../config/index');
 
 let lastTime = 0;
 let seq = 0;
+
+function formatUserData(user) {
+    if (!user) return null;
+    return {
+        ...user,
+        avatar_path: user.avatar_path ? `${config.BASE_URL}${user.avatar_path}` : null,
+        profile_bg: user.profile_bg ? `${config.BASE_URL}${user.profile_bg}` : null
+    };
+}
 
 class User {
     // 创建用户
@@ -70,19 +80,19 @@ class User {
     static async findByUserId(user_id) {
         const sql = 'SELECT user_id, username, avatar_path, profile_bg, gender, des, created_at FROM user_data WHERE user_id = ?';
         const [rows] = await pool.execute(sql, [user_id]);
-        return rows[0];
+        return formatUserData(rows[0]);
     }
 
     // 根据ID查找用户
     static async findById(id) {
         const sql = 'SELECT user_id, username, avatar_path, profile_bg, gender, des, created_at FROM user_data WHERE id = ?';
         const [rows] = await pool.execute(sql, [id]);
-        return rows[0];
+        return formatUserData(rows[0]);
     }
 
     // 根据UserID查找用户（包含邮箱）
     static async findUserByUserId(user_id) {
-        const userDataSql = 'SELECT id, user_id, username FROM user_data WHERE user_id = ?';
+        const userDataSql = 'SELECT id, user_id, username, avatar_path, profile_bg, gender, des FROM user_data WHERE user_id = ?';
         const [userDataRows] = await pool.execute(userDataSql, [user_id]);
         if (!userDataRows[0]) {
             return null;
@@ -93,10 +103,10 @@ class User {
         if (!userRows[0]) {
             return null;
         }
-        return {
+        return formatUserData({
             ...userDataRows[0],
             email: userRows[0].email
-        };
+        });
     }
 
     // 更新用户名

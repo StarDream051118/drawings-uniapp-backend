@@ -41,7 +41,7 @@ class UploadController {
             }
 
             const config = require('../config/index');
-            const avatarUrl = `${config.BASE_URL}/uploads/avatar/${file.filename}`;
+            const avatarUrl = `/uploads/avatar/${file.filename}`;
             const user_id = req.user_id;
 
             try {
@@ -58,7 +58,7 @@ class UploadController {
                     code: 200,
                     msg: '头像上传成功',
                     data: {
-                        avatarUrl,
+                        avatarUrl: `${config.BASE_URL}${avatarUrl}`,
                         filename: file.filename
                     }
                 });
@@ -69,7 +69,7 @@ class UploadController {
                     code: 200,
                     msg: '头像上传成功',
                     data: {
-                        avatarUrl: result.avatarUrl,
+                        avatarUrl: `${config.BASE_URL}${result.avatarUrl}`,
                         filename: result.filename
                     }
                 });
@@ -120,7 +120,7 @@ class UploadController {
             }
 
             const config = require('../config/index');
-            const profileBgUrl = `${config.BASE_URL}/uploads/profile_bg/${file.filename}`;
+            const profileBgUrl = `/uploads/profile_bg/${file.filename}`;
             const user_id = req.user_id;
 
             try {
@@ -137,7 +137,7 @@ class UploadController {
                     code: 200,
                     msg: '背景图上传成功',
                     data: {
-                        profileBgUrl,
+                        profileBgUrl: `${config.BASE_URL}${profileBgUrl}`,
                         filename: file.filename
                     }
                 });
@@ -148,7 +148,7 @@ class UploadController {
                     code: 200,
                     msg: '背景图上传成功',
                     data: {
-                        profileBgUrl: result.profileBgUrl,
+                        profileBgUrl: `${config.BASE_URL}${result.profileBgUrl}`,
                         filename: result.filename
                     }
                 });

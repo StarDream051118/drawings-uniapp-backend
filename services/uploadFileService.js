@@ -1,18 +1,17 @@
 const File = require('../models/file');
 const User = require('../models/user');
-const config = require('../config/index');
 const path = require('path');
 const fs = require('fs');
 
 class UploadFileService {
     static async uploadAvatar(file, user_id) {
         const { filename } = file;
-        const avatarUrl = `${config.BASE_URL}/uploads/avatar/${filename}`;
+        const avatarPath = `/uploads/avatar/${filename}`;
 
         const oldUser = await User.findByUserId(user_id);
         const oldAvatarPath = oldUser ? oldUser.avatar_path : null;
 
-        const success = await File.updateAvatarPath(user_id, avatarUrl);
+        const success = await File.updateAvatarPath(user_id, avatarPath);
         if (!success) {
             throw new Error('头像更新失败');
         }
@@ -26,19 +25,19 @@ class UploadFileService {
         }
 
         return {
-            avatarUrl,
+            avatarUrl: avatarPath,
             filename
         };
     }
 
     static async uploadProfileBg(file, user_id) {
         const { filename } = file;
-        const profileBgUrl = `${config.BASE_URL}/uploads/profile_bg/${filename}`;
+        const profileBgPath = `/uploads/profile_bg/${filename}`;
 
         const oldUser = await User.findByUserId(user_id);
         const oldProfileBgPath = oldUser ? oldUser.profile_bg : null;
 
-        const success = await File.updateProfileBgPath(user_id, profileBgUrl);
+        const success = await File.updateProfileBgPath(user_id, profileBgPath);
         if (!success) {
             throw new Error('背景图更新失败');
         }
@@ -52,7 +51,7 @@ class UploadFileService {
         }
 
         return {
-            profileBgUrl,
+            profileBgUrl: profileBgPath,
             filename
         };
     }
