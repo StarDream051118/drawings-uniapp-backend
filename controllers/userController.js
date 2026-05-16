@@ -101,6 +101,62 @@ class UserController {
         }
     }
 
+    static async searchUsers(req, res) {
+        try {
+            const { q } = req.query;
+            if (!q || !q.trim()) {
+                return res.status(400).json({
+                    code: 400,
+                    msg: '搜索关键词不能为空'
+                });
+            }
+
+            const users = await UserService.searchUsers(q.trim());
+            res.status(200).json({
+                code: 200,
+                msg: '搜索成功',
+                data: users
+            });
+        } catch (error) {
+            console.error('搜索用户错误：', error);
+            res.status(500).json({
+                code: 500,
+                msg: '服务器内部错误'
+            });
+        }
+    }
+
+    static async getUserProfile(req, res) {
+        try {
+            const { user_id } = req.params;
+            if (!user_id) {
+                return res.status(400).json({
+                    code: 400,
+                    msg: '用户ID不能为空'
+                });
+            }
+
+            const user = await UserService.getUserProfile(user_id);
+            res.status(200).json({
+                code: 200,
+                msg: '查询成功',
+                data: user
+            });
+        } catch (error) {
+            if (error.message === '用户不存在') {
+                return res.status(404).json({
+                    code: 404,
+                    msg: '用户不存在'
+                });
+            }
+            console.error('查询用户资料错误：', error);
+            res.status(500).json({
+                code: 500,
+                msg: '服务器内部错误'
+            });
+        }
+    }
+
     static async updateDes(req, res) {
         try {
             const { des } = req.body;

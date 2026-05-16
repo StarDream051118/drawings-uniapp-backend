@@ -5,6 +5,7 @@ const cors = require('cors');
 const net = require('net');
 const config = require('./config/index');
 const socketHandler = require('./socket/socketHandler');
+const { setIO } = require('./socket/io');
 const Consumer = require('./worker/consumer');
 
 // 创建Express实例
@@ -61,8 +62,12 @@ async function startServer() {
         // 路由导入
         const authRoutes = require('./routes/auth');
         const userRoutes = require('./routes/user');
+        const friendRoutes = require('./routes/friend');
+        const chatRoutes = require('./routes/chat');
         app.use('/api/auth', authRoutes);
         app.use('/api/user', userRoutes);
+        app.use('/api/friend', friendRoutes);
+        app.use('/api/chat', chatRoutes);
 
         // 创建HTTP服务器和Socket.io实例
         const server = http.createServer(app);
@@ -75,6 +80,15 @@ async function startServer() {
 
         // 初始化Socket.io控制
         socketHandler(io);
+
+        // 保存 io 实例供 Controller 使用
+        setIO(io);
+
+        // 初始化原生 WebSocket 服务器（供 APP 端使用）
+        const initWSServer = require('./socket/wsServer');
+        const { setWSBroadcast } = require('./socket/broadcast');
+        const wss = initWSServer(server);
+        setWSBroadcast(wss.broadcastToRoom);
 
         // 启动服务
         server.listen(config.port, async () => {

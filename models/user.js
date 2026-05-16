@@ -133,6 +133,14 @@ class User {
         return result.affectedRows > 0;
     }
 
+    // 搜索用户（用户名模糊 + user_id 精确）
+    static async searchUsers(keyword) {
+        const likeKeyword = `%${keyword}%`;
+        const sql = 'SELECT user_id, username, avatar_path FROM user_data WHERE username LIKE ? OR user_id = ? LIMIT 20';
+        const [rows] = await pool.execute(sql, [likeKeyword, keyword]);
+        return rows.map(row => formatUserData(row));
+    }
+
     // 更新密码
     static async updatePassword(email, newPassword) {
         const sql = 'UPDATE users SET password = ?, updated_at = ? WHERE email = ?';

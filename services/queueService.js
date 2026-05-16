@@ -1,6 +1,7 @@
 const rabbitmq = require('../db/rabbitmq');
 const User = require('../models/user');
 const File = require('../models/file');
+const UserService = require('./userService');
 const path = require('path');
 const fs = require('fs');
 
@@ -34,14 +35,17 @@ class QueueService {
             switch (type) {
                 case 'update_username':
                     await User.updateUsername(user_id, data.username);
+                    await UserService.clearProfileCache(user_id);
                     break;
 
                 case 'update_gender':
                     await User.updateGender(user_id, data.gender);
+                    await UserService.clearProfileCache(user_id);
                     break;
 
                 case 'update_des':
                     await User.updateDes(user_id, data.des);
+                    await UserService.clearProfileCache(user_id);
                     break;
 
                 case 'update_avatar':
@@ -53,6 +57,7 @@ class QueueService {
                             fs.unlinkSync(oldFilePath);
                         }
                     }
+                    await UserService.clearProfileCache(user_id);
                     break;
 
                 case 'update_profile_bg':
@@ -64,6 +69,7 @@ class QueueService {
                             fs.unlinkSync(oldFilePath);
                         }
                     }
+                    await UserService.clearProfileCache(user_id);
                     break;
 
                 default:

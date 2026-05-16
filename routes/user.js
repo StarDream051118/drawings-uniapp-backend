@@ -81,6 +81,9 @@ async function authMiddleware(req, res, next) {
     next();
 }
 
+router.get('/search', authMiddleware, UserController.searchUsers);
+router.get('/profile/:user_id', authMiddleware, UserController.getUserProfile);
+
 router.post('/avatar', authMiddleware, uploadAvatar.single('avatar'), UploadController.uploadAvatar);
 router.post('/profile-bg', authMiddleware, uploadProfileBg.single('profile_bg'), UploadController.uploadProfileBg);
 router.put('/username', authMiddleware, verifySignature, UserController.updateUsername);

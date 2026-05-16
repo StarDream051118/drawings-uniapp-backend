@@ -18,8 +18,8 @@ class EmailService {
         const transporter = this.createTransporter();
 
         const subject = type === 'register'
-            ? '【Drawings】注册验证码'
-            : '【Drawings】重置密码验证码';
+            ? '【Drawings团队】注册验证码'
+            : '【Drawings团队】重置密码验证码';
 
         const greeting = username ? `您好，${username}！` : '您好！';
 

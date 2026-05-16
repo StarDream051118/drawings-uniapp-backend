@@ -1,5 +1,6 @@
 const File = require('../models/file');
 const User = require('../models/user');
+const UserService = require('./userService');
 const path = require('path');
 const fs = require('fs');
 
@@ -23,6 +24,8 @@ class UploadFileService {
                 fs.unlinkSync(oldFilePath);
             }
         }
+
+        await UserService.clearProfileCache(user_id);
 
         return {
             avatarUrl: avatarPath,
@@ -49,6 +52,8 @@ class UploadFileService {
                 fs.unlinkSync(oldFilePath);
             }
         }
+
+        await UserService.clearProfileCache(user_id);
 
         return {
             profileBgUrl: profileBgPath,
