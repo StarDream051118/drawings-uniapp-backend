@@ -2,6 +2,11 @@ const pool = require('../db/index');
 const redis = require('../db/redis');
 const config = require('../config/index');
 
+// Redis 缓存配置
+const MSG_CACHE_TTL = 86400   // 24小时
+const MSG_CACHE_MAX = 200     // 每会话最多缓存200条
+const UNREAD_TTL = 86400      // 统一24小时
+
 function formatAvatar(avatarPath) {
     if (!avatarPath) return null;
     return avatarPath.startsWith('http') ? avatarPath : `${config.BASE_URL}${avatarPath}`;
@@ -71,19 +76,29 @@ class Chat {
             // 从 Redis 获取未读数，未命中则从数据库读取
             let unreadCount = 0;
             const redisKey = `chat:session:${row.id}:unread:${userId}`;
-            const cachedUnread = await redis.get(redisKey);
+            try {
+                const cachedUnread = await redis.get(redisKey);
 
-            if (cachedUnread !== null) {
-                unreadCount = parseInt(cachedUnread);
-            } else {
-                // 从数据库读取
+                if (cachedUnread !== null) {
+                    unreadCount = parseInt(cachedUnread);
+                } else {
+                    // 从数据库读取
+                    if (row.user_id1 === userId) {
+                        unreadCount = row.unread_count1 || 0;
+                    } else {
+                        unreadCount = row.unread_count2 || 0;
+                    }
+                    // 写入缓存
+                    await redis.set(redisKey, unreadCount, 'EX', UNREAD_TTL);
+                }
+            } catch (err) {
+                console.error('[Cache] 读取未读数缓存失败:', err.message);
+                // 降级到数据库
                 if (row.user_id1 === userId) {
                     unreadCount = row.unread_count1 || 0;
                 } else {
                     unreadCount = row.unread_count2 || 0;
                 }
-                // 写入缓存
-                await redis.set(redisKey, unreadCount, 'EX', 300);
             }
 
             sessions.push({
@@ -109,6 +124,32 @@ class Chat {
 
     // 获取历史消息（分页）
     static async getMessages(sessionId, beforeId = null, limit = 20) {
+        // 首次加载（无 beforeId）优先走缓存
+        if (!beforeId) {
+            try {
+                const cacheKey = `chat:session:${sessionId}:messages`;
+                const cached = await redis.zrevrange(cacheKey, 0, limit - 1);
+                if (cached && cached.length > 0) {
+                    const messages = cached.map(item => JSON.parse(item)).reverse();
+                    // 批量补充 sender_name
+                    const senderIds = [...new Set(messages.map(m => m.sender_id))];
+                    const senderMap = {};
+                    if (senderIds.length > 0) {
+                        const placeholders = senderIds.map(() => '?').join(',');
+                        const [userRows] = await pool.execute(
+                            `SELECT user_id, username FROM user_data WHERE user_id IN (${placeholders})`,
+                            senderIds
+                        );
+                        userRows.forEach(row => { senderMap[row.user_id] = row.username; });
+                    }
+                    return messages.map(m => ({ ...m, sender_name: senderMap[m.sender_id] || '未知用户' }));
+                }
+            } catch (err) {
+                console.error('[Cache] 读取消息缓存失败:', err.message);
+            }
+        }
+
+        // MySQL 查询
         let sql = `
             SELECT cm.id, cm.session_id, cm.sender_id, cm.content, cm.msg_type, cm.media_id, cm.created_at, ud.username as sender_name
             FROM chat_message cm
@@ -127,7 +168,7 @@ class Chat {
 
         const [rows] = await pool.execute(sql, params);
 
-        return rows.reverse().map(row => ({
+        const messages = rows.reverse().map(row => ({
             id: row.id,
             session_id: row.session_id,
             sender_id: row.sender_id,
@@ -137,6 +178,23 @@ class Chat {
             media_id: row.media_id,
             created_at: row.created_at
         }));
+
+        // 回填缓存（仅首次加载时）
+        if (!beforeId && messages.length > 0) {
+            try {
+                const cacheKey = `chat:session:${sessionId}:messages`;
+                const pipeline = redis.pipeline();
+                for (const msg of messages) {
+                    pipeline.zadd(cacheKey, msg.id, JSON.stringify(msg));
+                }
+                pipeline.expire(cacheKey, MSG_CACHE_TTL);
+                await pipeline.exec();
+            } catch (err) {
+                console.error('[Cache] 回填消息缓存失败:', err.message);
+            }
+        }
+
+        return messages;
     }
 
     // 发送消息
@@ -144,7 +202,7 @@ class Chat {
         const sql = 'INSERT INTO chat_message (session_id, sender_id, content, msg_type, media_id) VALUES (?, ?, ?, ?, ?)';
         const [result] = await pool.execute(sql, [sessionId, senderId, content, msgType, mediaId]);
 
-        return {
+        const message = {
             id: result.insertId,
             session_id: sessionId,
             sender_id: senderId,
@@ -153,6 +211,18 @@ class Chat {
             media_id: mediaId,
             created_at: new Date()
         };
+
+        // 写穿透：同步写入 Redis 缓存
+        try {
+            const cacheKey = `chat:session:${sessionId}:messages`;
+            await redis.zadd(cacheKey, message.id, JSON.stringify(message));
+            await redis.zremrangebyscore(cacheKey, '-inf', message.id - MSG_CACHE_MAX);
+            await redis.expire(cacheKey, MSG_CACHE_TTL);
+        } catch (err) {
+            console.error('[Cache] 写入消息缓存失败:', err.message);
+        }
+
+        return message;
     }
 
     // 更新会话最后消息信息
@@ -176,9 +246,13 @@ class Chat {
         await pool.execute(sql, [sessionId]);
 
         // 更新 Redis 缓存
-        const redisKey = `chat:session:${sessionId}:unread:${receiverId}`;
-        await redis.incr(redisKey);
-        await redis.expire(redisKey, 86400); // 24小时过期
+        try {
+            const redisKey = `chat:session:${sessionId}:unread:${receiverId}`;
+            await redis.incr(redisKey);
+            await redis.expire(redisKey, UNREAD_TTL);
+        } catch (err) {
+            console.error('[Cache] 更新未读数缓存失败:', err.message);
+        }
     }
 
     // 清零未读计数
@@ -192,8 +266,12 @@ class Chat {
         await pool.execute(sql, [sessionId]);
 
         // 删除 Redis 缓存
-        const redisKey = `chat:session:${sessionId}:unread:${userId}`;
-        await redis.del(redisKey);
+        try {
+            const redisKey = `chat:session:${sessionId}:unread:${userId}`;
+            await redis.del(redisKey);
+        } catch (err) {
+            console.error('[Cache] 清除未读数缓存失败:', err.message);
+        }
     }
 
     // 删除会话（仅对当前用户）
